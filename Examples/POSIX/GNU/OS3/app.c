@@ -51,26 +51,38 @@
 *                                       LOCAL GLOBAL VARIABLES
 *********************************************************************************************************
 */
-
-static	OS_TCB			App_TaskStartTCB;
-static	OS_TCB			App_TaskStartTCB1;
-static	OS_TCB			App_TaskStartTCB2;
-static	OS_TCB			App_TaskStartTCB3;
+static	OS_TCB			App_TaskStartTCB_Task1;
+static	OS_TCB			App_TaskStartTCB_Task2;
+static	OS_TCB			App_TaskStartTCB_Task3;
 static	OS_TCB			App_TaskStartTCB_Controller;
 static	CPU_STK_SIZE	App_TaskStartStk[APP_CFG_TASK_START_STK_SIZE];
 
-static	CPU_INT32U		App_iterT1 = 0u;
-static	CPU_INT32U		App_iterT2 = 0u;
-static	CPU_INT32U		App_iterT3 = 0u;
+int	TASK_DATETIME = 0;
+int	TASK_DELAY100 = 1;
+int	TASK_NOOP1 = 2;
+int	TASK_NOOP2 = 3;
+int	TASK_NOOP3 = 4;
+int	TASK_NOOP4 = 5;
+/*
+ *	taskinfo[TASK_DATETIME]
+ *	taskinfo[TASK_DELAY100]
+ *	taskinfo[TASK_NOOP1]
+ *	taskinfo[TASK_NOOP2]
+ *	taskinfo[TASK_NOOP3]
+ *	taskinfo[TASK_NOOP4]
+ */
+typedef struct {
+	CPU_INT32U	iter; // number of times executed
+	CPU_FP32	dur[APP_CFG_TASK_START_STK_SIZE]; // duration of task in seconds
+} taskinfo_st;
 
+static taskinfo_st taskinfo[6];
 
 /*
 *********************************************************************************************************
 *                                      LOCAL FUNCTION PROTOTYPES
 *********************************************************************************************************
 */
-
-static  void  App_TaskStart					(void       *p_arg);
 static  void  App_TaskStart1				(void       *p_arg);
 static  void  App_TaskStart2				(void       *p_arg);
 static  void  App_TaskStart3				(void       *p_arg);
@@ -88,7 +100,6 @@ static CPU_INT32U tsInSec() {
                   OS_OPT_TIME_HMSM_STRICT,
                   &err);
     tsPerSec = CPU_TS_Get32() - tsStart;
-    printf("One second has %u timestamp\n", tsPerSec);
     return tsPerSec;
 }
 
@@ -125,10 +136,10 @@ int  main (void)
     printf("\n\nmain: OSInit\n");
     OSInit(&err);                                               /* Initialize "uC/OS-III, The Real-Time Kernel"         */
 
-#if 0
-    OSTaskCreate((OS_TCB     *)&App_TaskStartTCB,               /* Create the start task                                */
-                 (CPU_CHAR   *)"main: App Task Start",
-                 (OS_TASK_PTR ) App_TaskStart,
+    //Task 1
+    OSTaskCreate((OS_TCB     *)&App_TaskStartTCB_Task1,               /* Create the start task                                */
+                 (CPU_CHAR   *)"main: App Task Start1",
+                 (OS_TASK_PTR ) App_TaskStart1,
                  (void       *) 0,
                  (OS_PRIO     ) APP_CFG_TASK_START_PRIO,
                  (CPU_STK    *)&App_TaskStartStk[0],
@@ -139,12 +150,11 @@ int  main (void)
                  (void       *) 0,
                  (OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
                  (OS_ERR     *)&err);
-#endif
 
-    //Task 1
-    OSTaskCreate((OS_TCB     *)&App_TaskStartTCB1,               /* Create the start task                                */
-                 (CPU_CHAR   *)"main: App Task Start1",
-                 (OS_TASK_PTR ) App_TaskStart1,
+    //Task 2
+    OSTaskCreate((OS_TCB     *)&App_TaskStartTCB_Task2,               /* Create the start task                                */
+                 (CPU_CHAR   *)"main: App Task Start2",
+                 (OS_TASK_PTR ) App_TaskStart2,
                  (void       *) 0,
                  (OS_PRIO     ) APP_CFG_TASK_START_PRIO,
                  (CPU_STK    *)&App_TaskStartStk[1],
@@ -156,28 +166,13 @@ int  main (void)
                  (OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
                  (OS_ERR     *)&err);
 
-    //Task 2
-    OSTaskCreate((OS_TCB     *)&App_TaskStartTCB2,               /* Create the start task                                */
-                 (CPU_CHAR   *)"main: App Task Start2",
-                 (OS_TASK_PTR ) App_TaskStart2,
-                 (void       *) 0,
-                 (OS_PRIO     ) APP_CFG_TASK_START_PRIO,
-                 (CPU_STK    *)&App_TaskStartStk[2],
-                 (CPU_STK     )(APP_CFG_TASK_START_STK_SIZE / 10u),
-                 (CPU_STK_SIZE) APP_CFG_TASK_START_STK_SIZE,
-                 (OS_MSG_QTY  ) 0,
-                 (OS_TICK     ) 0,
-                 (void       *) 0,
-                 (OS_OPT      )(OS_OPT_TASK_STK_CHK | OS_OPT_TASK_STK_CLR),
-                 (OS_ERR     *)&err);
-
     //Task 3
-    OSTaskCreate((OS_TCB     *)&App_TaskStartTCB3,               /* Create the start task                                */
+    OSTaskCreate((OS_TCB     *)&App_TaskStartTCB_Task3,               /* Create the start task                                */
                  (CPU_CHAR   *)"main: App Task Start3",
                  (OS_TASK_PTR ) App_TaskStart3,
                  (void       *) 0,
                  (OS_PRIO     ) APP_CFG_TASK_START_PRIO,
-                 (CPU_STK    *)&App_TaskStartStk[3],
+                 (CPU_STK    *)&App_TaskStartStk[2],
                  (CPU_STK     )(APP_CFG_TASK_START_STK_SIZE / 10u),
                  (CPU_STK_SIZE) APP_CFG_TASK_START_STK_SIZE,
                  (OS_MSG_QTY  ) 0,
@@ -192,7 +187,7 @@ int  main (void)
                  (OS_TASK_PTR ) App_TaskStart_Controller,
                  (void       *) 0,
                  (OS_PRIO     ) APP_CFG_TASK_START_PRIO,
-                 (CPU_STK    *)&App_TaskStartStk[4],
+                 (CPU_STK    *)&App_TaskStartStk[3],
                  (CPU_STK     )(APP_CFG_TASK_START_STK_SIZE / 10u),
                  (CPU_STK_SIZE) APP_CFG_TASK_START_STK_SIZE,
                  (OS_MSG_QTY  ) 0,
@@ -207,44 +202,6 @@ int  main (void)
     printf("\n\nmain: should never see this!\n");
     while(DEF_ON){												/* Should Never Get Here							    */
     };
-}
-
-
-/*
-*********************************************************************************************************
-*                                          App_TaskStart()
-*
-* Description : This is an example of a startup task.  As mentioned in the book's text, you MUST
-*               initialize the ticker only once multitasking has started.
-*
-* Argument(s) : p_arg   is the argument passed to 'App_TaskStart()' by 'OSTaskCreate()'.
-*
-* Return(s)   : none.
-*
-* Caller(s)   : This is a task.
-*
-* Notes       : (1) The first line of code is used to prevent a compiler warning because 'p_arg' is not
-*                   used.  The compiler should not generate any code for this statement.
-*********************************************************************************************************
-*/
-static  void  App_TaskStart (void *p_arg)
-{
-    OS_ERR      os_err;
-
-    (void)p_arg;                                                /* See Note #1                                          */
-
-    CPU_Init();
-    Mem_Init();                                                 /* Initialize the Memory Management Module              */
-    Math_Init();                                                /* Initialize the Mathematical Module                   */
-
-    OS_CPU_SysTickInit();
-
-    while (DEF_TRUE) {                                          /* Task body, always written as an infinite loop.       */
-    	printf("uCOS-III is running.\n");
-        OSTimeDlyHMSM(0u, 0u, 1u, 0u,
-                      OS_OPT_TIME_HMSM_STRICT,
-                      &os_err);
-    }
 }
 
 
@@ -264,12 +221,13 @@ static  void  App_TaskStart1 (void *p_arg)
     OS_CPU_SysTickInit();
 
     while (DEF_TRUE) {                                          /* Task body, always written as an infinite loop.       */
-    	printf("T1 is running: ##\n");
     	CPU_INT32U tsStart = CPU_TS_Get32();
-    	printf("T1: timestamp = %u\n", tsStart);
+    	//actual task
+    	CPU_INT32U tsCur = CPU_TS_Get32();
     	CPU_INT32U tsEnd = CPU_TS_Get32();
-    	printf("T1: Took %9.6f seconds\n", ts2sec(tsEnd-tsStart));
-    	App_iterT1++;
+
+    	taskinfo[TASK_DATETIME].iter++;
+    	taskinfo[TASK_DATETIME].dur[taskinfo[TASK_DATETIME].iter] = ts2sec(tsEnd-tsStart);
     }
 }
 
@@ -281,8 +239,6 @@ static  void  App_TaskStart2 (void *p_arg)
 
     (void)p_arg;                                                /* See Note #1                                          */
 
-    printf("App_TaskStart2\n");
-
     CPU_Init();
     Mem_Init();                                                 /* Initialize the Memory Management Module              */
     Math_Init();                                                /* Initialize the Mathematical Module                   */
@@ -290,15 +246,15 @@ static  void  App_TaskStart2 (void *p_arg)
     OS_CPU_SysTickInit();
 
     while (DEF_TRUE) {                                          /* Task body, always written as an infinite loop.       */
-    	printf("T2 is running: ####\n");
     	CPU_INT32U tsStart = CPU_TS_Get32();
-    	printf("T2: delay...\n");
+    	//actual task
         OSTimeDlyHMSM(0u, 0u, 0u, 100u,
                       OS_OPT_TIME_HMSM_STRICT,
                       &os_err);
         CPU_INT32U tsEnd = CPU_TS_Get32();
-        printf("T2: Took %9.6f seconds\n", ts2sec(tsEnd-tsStart));
-        App_iterT2++;
+
+    	taskinfo[TASK_DELAY100].iter++;
+    	taskinfo[TASK_DELAY100].dur[taskinfo[TASK_DELAY100].iter] = ts2sec(tsEnd-tsStart);
     }
 }
 
@@ -310,8 +266,6 @@ static  void  App_TaskStart3 (void *p_arg)
 
     (void)p_arg;                                                /* See Note #1                                          */
 
-    printf("App_TaskStart3\n");
-
     CPU_Init();
     Mem_Init();                                                 /* Initialize the Memory Management Module              */
     Math_Init();                                                /* Initialize the Mathematical Module                   */
@@ -319,12 +273,15 @@ static  void  App_TaskStart3 (void *p_arg)
     OS_CPU_SysTickInit();
 
     while (DEF_TRUE) {                                          /* Task body, always written as an infinite loop.       */
-    	printf("T3 is running: ######\n");
     	CPU_INT32U tsStart = CPU_TS_Get32();
-    	printf("T3: noop\n");
+    	//actual task; noop
+        OSTimeDlyHMSM(0u, 0u, 0u, 1u,
+                      OS_OPT_TIME_HMSM_STRICT,
+                      &os_err);
     	CPU_INT32U tsEnd = CPU_TS_Get32();
-    	printf("T3: Took %9.6f seconds\n", ts2sec(tsEnd-tsStart));
-    	App_iterT3++;
+
+    	taskinfo[TASK_NOOP1].iter++;
+    	taskinfo[TASK_NOOP1].dur[taskinfo[TASK_NOOP1].iter] = ts2sec(tsEnd-tsStart);
     }
 }
 
@@ -343,41 +300,47 @@ static  void  App_TaskStart_Controller(void *p_arg)
     Math_Init();                                                /* Initialize the Mathematical Module                   */
     OS_CPU_SysTickInit();
 
-    //CPU_INT32U tsStart = CPU_TS_Get32();
-    //CPU_INT32U tsNow = 0u;
-    //CPU_INT32U tsPERIOD = 60 * 60 * tsInSec();
-
     //delay for 2 minutes before suspending the 6 tasks
-    OSTimeDlyHMSM(0u, 2u, 0u, 0u,
+    OSTimeDlyHMSM(0u, 0u, 30u, 0u,
                   OS_OPT_TIME_HMSM_STRICT,
                   &os_err);
 	printf("TC: suspending all tasks.\n");
-    OSTaskSuspend((OS_TCB *)&App_TaskStartTCB1, (OS_ERR *)&os_err);
-    OSTaskSuspend((OS_TCB *)&App_TaskStartTCB2, (OS_ERR *)&os_err);
-    OSTaskSuspend((OS_TCB *)&App_TaskStartTCB3, (OS_ERR *)&os_err);
-
-    printf("TC: deleting all tasks.\n");
-    OSTaskDel((OS_TCB *)&App_TaskStartTCB1, (OS_ERR *)&os_err);
-    OSTaskDel((OS_TCB *)&App_TaskStartTCB2, (OS_ERR *)&os_err);
-    OSTaskDel((OS_TCB *)&App_TaskStartTCB3, (OS_ERR *)&os_err);
+    OSTaskSuspend((OS_TCB *)&App_TaskStartTCB_Task1, (OS_ERR *)&os_err);
+    OSTaskSuspend((OS_TCB *)&App_TaskStartTCB_Task2, (OS_ERR *)&os_err);
+    OSTaskSuspend((OS_TCB *)&App_TaskStartTCB_Task3, (OS_ERR *)&os_err);
 
     //print summary
-    printf("TC: Summary of all Tasks:\n");
-    printf("Task 1 has executed %u times\n", App_iterT1);
-    printf("Task 2 has executed %u times\n", App_iterT2);
-    printf("Task 3 has executed %u times\n", App_iterT3);
+    printf("\n\nSummary of all Tasks:\n");
+    printf("Task 1 has executed %u times\n", taskinfo[TASK_DATETIME].iter);
+    for (int i=0; i < taskinfo[TASK_DATETIME].iter; i++) {
+    	printf("Iter #: %d ; took %9.9f seconds\n",
+    			i,
+				taskinfo[TASK_DATETIME].dur[i]
+				);
+    }
+    printf("\n\n");
+    printf("Task 2 has executed %u times\n", taskinfo[TASK_DELAY100].iter);
+    for (int i=0; i < taskinfo[TASK_DELAY100].iter; i++) {
+    	printf("Iter #: %d ; took %9.9f seconds\n",
+    			i,
+				taskinfo[TASK_DELAY100].dur[i]
+				);
+    }
+    printf("\n\n");
+    printf("Task 3 has executed %u times\n", taskinfo[TASK_NOOP1].iter);
+    for (int i=0; i < taskinfo[TASK_NOOP1].iter; i++) {
+    	printf("Iter #: %d ; took %9.9f seconds\n",
+    			i,
+				taskinfo[TASK_NOOP1].dur[i]
+				);
+    }
+    printf("\n\n");
+    printf("TC: deleting all tasks.\n");
+    OSTaskDel((OS_TCB *)&App_TaskStartTCB_Task1, (OS_ERR *)&os_err);
+    OSTaskDel((OS_TCB *)&App_TaskStartTCB_Task2, (OS_ERR *)&os_err);
+    OSTaskDel((OS_TCB *)&App_TaskStartTCB_Task3, (OS_ERR *)&os_err);
 
     //self suspend
     OSTaskSuspend((OS_TCB *)&App_TaskStartTCB_Controller, (OS_ERR *)&os_err);
     printf("TC: self suspending.\n");
-
-#if 0
-    while (DEF_TRUE) { /* Task body, always written as an infinite loop.       */
-    	tsNow = CPU_TS_Get32();
-    	if (tsNow - tsStart > tsPERIOD) {
-
-    	}
-    	printf("TC: App_TaskStart_Controller is running.......  tsNow = %u\n", tsNow);
-    }
-#endif
 }
